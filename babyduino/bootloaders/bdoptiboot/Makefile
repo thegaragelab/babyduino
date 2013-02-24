@@ -95,12 +95,12 @@ endif
 # unused, avrdude would get confused.
 
 ISPFUSES    = $(GCCROOT)avrdude $(AVRDUDE_CONF) -c $(ISPTOOL) \
-              -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
-              -e -u -U lock:w:0x3f:m -U efuse:w:0x$(EFUSE):m \
-              -U hfuse:w:0x$(HFUSE):m -U lfuse:w:0x$(LFUSE):m
+	      -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
+	      -e -u -U lock:w:0x3f:m -U efuse:w:0x$(EFUSE):m \
+	      -U hfuse:w:0x$(HFUSE):m -U lfuse:w:0x$(LFUSE):m
 ISPFLASH    = $(GCCROOT)avrdude $(AVRDUDE_CONF) -c $(ISPTOOL) \
-              -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
-              -U flash:w:$(PROGRAM)_$(TARGET).hex -U lock:w:0x2f:m
+	      -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
+	      -U flash:w:$(PROGRAM)_$(TARGET).hex -U lock:w:0x2f:m
 
 STK500 = "C:\Program Files\Atmel\AVR Tools\STK500\Stk500.exe"
 STK500-1 = $(STK500) -e -d$(MCU_TARGET) -pf -vf -if$(PROGRAM)_$(TARGET).hex \
@@ -110,7 +110,7 @@ STK500-2 = $(STK500) -d$(MCU_TARGET) -ms -q -lCF -LCF -cUSB -I200kHz -s -wt
 OBJ        = $(PROGRAM).o
 OPTIMIZE = -Os -fno-inline-small-functions -fno-split-wide-types -mshort-calls
 
-DEFS       = 
+DEFS       =
 LIBS       =
 
 CC         = $(GCCROOT)avr-gcc
@@ -186,7 +186,7 @@ pro16_isp: isp
 atmega168: TARGET = atmega168
 atmega168: MCU_TARGET = atmega168
 atmega168: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-atmega168: AVR_FREQ = 16000000L 
+atmega168: AVR_FREQ = 16000000L
 atmega168: $(PROGRAM)_atmega168.hex
 atmega168: $(PROGRAM)_atmega168.lst
 
@@ -203,7 +203,7 @@ atmega168_isp: isp
 diecimila: TARGET = diecimila
 diecimila: MCU_TARGET = atmega168
 diecimila: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-diecimila: AVR_FREQ = 16000000L 
+diecimila: AVR_FREQ = 16000000L
 diecimila: $(PROGRAM)_diecimila.hex
 diecimila: $(PROGRAM)_diecimila.lst
 
@@ -282,7 +282,7 @@ mega_isp: isp
 atmega8: TARGET = atmega8
 atmega8: MCU_TARGET = atmega8
 atmega8: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-atmega8: AVR_FREQ = 16000000L 
+atmega8: AVR_FREQ = 16000000L
 atmega8: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
 atmega8: $(PROGRAM)_atmega8.hex
 atmega8: $(PROGRAM)_atmega8.lst
@@ -301,7 +301,7 @@ atmega8_isp: isp
 atmega88: TARGET = atmega88
 atmega88: MCU_TARGET = atmega88
 atmega88: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-atmega88: AVR_FREQ = 16000000L 
+atmega88: AVR_FREQ = 16000000L
 atmega88: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
 atmega88: $(PROGRAM)_atmega88.hex
 atmega88: $(PROGRAM)_atmega88.lst
@@ -417,6 +417,47 @@ luminet_isp: LFUSE = 62
 # Self-programming enable
 luminet_isp: EFUSE = FE
 luminet_isp: isp
+
+# Babyduino platforms
+#
+# These are set to use 57600 upload speed
+#
+
+# Babyduino - ATmega8/Internal clock @8MHz
+#
+babyduino8_nc: TARGET = babyduino8_nc
+babyduino8_nc: MCU_TARGET = atmega8
+babyduino8_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=57600'
+babyduino8_nc: AVR_FREQ = 8000000L
+babyduino8_nc: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
+babyduino8_nc: $(PROGRAM)_babyduino8_nc.hex
+babyduino8_nc: $(PROGRAM)_babyduino8_nc.lst
+
+babyduino8_nc_isp: babyduino8_nc
+babyduino8_nc_isp: TARGET = babyduino8_nc
+babyduino8_nc_isp: MCU_TARGET = atmega8
+# SPIEN, CKOPT, Bootsize=512B
+babyduino8_nc_isp: HFUSE = CC
+# 4.0V brownout, Internal Clock (8MHz) 6CK+64ms
+babyduino8_nc_isp: LFUSE = 24
+babyduino8_nc_isp: isp
+
+babyduino168_nc: TARGET = babyduino168_nc
+babyduino168_nc: MCU_TARGET = atmega168
+babyduino168_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=57600'
+babyduino168_nc: AVR_FREQ = 8000000L
+babyduino168_nc: $(PROGRAM)_babyduino168_nc.hex
+babyduino168_nc: $(PROGRAM)_babyduino168_nc.lst
+
+babyduino168_nc_isp: babyduino168_nc
+babyduino168_nc_isp: TARGET = babyduino168_nc
+# 4.3V brownout
+babyduino168_nc_isp: HFUSE = DC
+# Internal Oscillator (8MHz) 6KCK/14CK+65ms
+babyduino168_nc_isp: LFUSE = E2
+# 512 byte boot
+babyduino168_nc_isp: EFUSE = 04
+babyduino168_nc_isp: isp
 
 #
 # Generic build instructions
