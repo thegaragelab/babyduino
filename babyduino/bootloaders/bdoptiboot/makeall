@@ -1,20 +1,8 @@
 #!/bin/bash
 make clean
 #
-# The "big three" standard bootloaders.
-make atmega8
-make atmega168
-make atmega328
+# In this version only make the 'Babyduino' boot loaders
 #
-# additional buildable platforms of
-#  somewhat questionable support level
-make lilypad
-make lilypad_resonator
-make pro8
-make pro16
-make pro20
-make atmega328_pro8
-make sanguino
-make mega
-make atmega88
-make luminet
+make babyduino8_nc
+make babyduino168_nc
+
