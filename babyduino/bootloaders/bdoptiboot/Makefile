@@ -427,7 +427,7 @@ luminet_isp: isp
 #
 babyduino8_nc: TARGET = babyduino8_nc
 babyduino8_nc: MCU_TARGET = atmega8
-babyduino8_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=57600'
+babyduino8_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=28800' '-DTIMEOUT_MS=4000'
 babyduino8_nc: AVR_FREQ = 8000000L
 babyduino8_nc: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
 babyduino8_nc: $(PROGRAM)_babyduino8_nc.hex
@@ -437,15 +437,16 @@ babyduino8_nc_isp: babyduino8_nc
 babyduino8_nc_isp: TARGET = babyduino8_nc
 babyduino8_nc_isp: MCU_TARGET = atmega8
 # SPIEN, CKOPT, Bootsize=512B
-babyduino8_nc_isp: HFUSE = CC
+babyduino8_nc_isp: HFUSE = CA
 # 4.0V brownout, Internal Clock (8MHz) 6CK+64ms
 babyduino8_nc_isp: LFUSE = 24
 babyduino8_nc_isp: isp
 
 babyduino168_nc: TARGET = babyduino168_nc
 babyduino168_nc: MCU_TARGET = atmega168
-babyduino168_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=57600'
+babyduino168_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=28800' '-DTIMEOUT_MS=4000'
 babyduino168_nc: AVR_FREQ = 8000000L
+babyduino168_nc: LDSECTIONS  = -Wl,--section-start=.text=0x3e00 -Wl,--section-start=.version=0x3ffe
 babyduino168_nc: $(PROGRAM)_babyduino168_nc.hex
 babyduino168_nc: $(PROGRAM)_babyduino168_nc.lst
 

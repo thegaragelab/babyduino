@@ -69,7 +69,7 @@ Disassembly of section .text:
     3e1c:	86 e0       	ldi	r24, 0x06	; 6
     3e1e:	80 93 c2 00 	sts	0x00C2, r24
   UBRR0L = (uint8_t)( (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 );
-    3e22:	80 e1       	ldi	r24, 0x10	; 16
+    3e22:	82 e2       	ldi	r24, 0x22	; 34
     3e24:	80 93 c4 00 	sts	0x00C4, r24
 #endif
 #endif
