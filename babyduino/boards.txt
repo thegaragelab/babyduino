@@ -16,8 +16,8 @@ babyduino8_nc.bootloader.lock_bits=0x0F
 
 babyduino8_nc.build.mcu=atmega8
 babyduino8_nc.build.f_cpu=8000000L
-babyduino8_nc.build.core=arduino
-babyduino8_nc.build.variant=standard
+babyduino8_nc.build.core=arduino:arduino
+babyduino8_nc.build.variant=arduino:standard
 
 # Babyduino (ATMega168, Internal Clock, 8MHz)
 babyduino168_nc.name=Babyduino (ATMega168 Internal Clock)
@@ -35,6 +35,6 @@ babyduino168_nc.bootloader.lock_bits=0x0F
 
 babyduino168_nc.build.mcu=atmega168
 babyduino168_nc.build.f_cpu=8000000L
-babyduino168_nc.build.core=arduino
-babyduino168_nc.build.variant=standard
+babyduino168_nc.build.core=arduino:arduino
+babyduino168_nc.build.variant=arduino:standard
 
