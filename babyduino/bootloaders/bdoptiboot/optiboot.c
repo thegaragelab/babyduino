@@ -5,6 +5,9 @@
 /*                                                        */
 /* Arduino-maintained version : See README.TXT            */
 /* http://code.google.com/p/arduino/                      */
+/*  It is the intent that changes not relevant to the     */
+/*  Arduino production envionment get moved from the      */
+/*  optiboot project to the arduino project in "lumps."   */
 /*                                                        */
 /* Heavily optimised bootloader that is faster and        */
 /* smaller than the Arduino standard bootloader           */
@@ -29,11 +32,16 @@
 /*   ATmega168 based devices  (Diecimila etc)             */
 /*   ATmega328P based devices (Duemilanove etc)           */
 /*                                                        */
+/* Beta test (believed working.)                          */
+/*   ATmega8 based devices (Arduino legacy)               */
+/*   ATmega328 non-picopower devices                      */
+/*   ATmega644P based devices (Sanguino)                  */
+/*   ATmega1284P based devices                            */
+/*                                                        */
 /* Alpha test                                             */
 /*   ATmega1280 based devices (Arduino Mega)              */
 /*                                                        */
 /* Work in progress:                                      */
-/*   ATmega644P based devices (Sanguino)                  */
 /*   ATtiny84 based devices (Luminet)                     */
 /*                                                        */
 /* Does not support:                                      */
@@ -113,6 +121,10 @@
 /* Bootloader timeout period, in milliseconds.            */
 /* 500,1000,2000,4000,8000 supported.                     */
 /*                                                        */
+/* UART:                                                  */
+/* UART number (0..n) for devices with more than          */
+/* one hardware uart (644P, 1284P, etc)                   */
+/*                                                        */
 /**********************************************************/
 
 /**********************************************************/
@@ -132,6 +144,29 @@
 /**********************************************************/
 /* Edit History:					  */
 /*							  */
+/* Jan 2013						  */
+/* 4.6 WestfW/dkinzer: use autoincrement lpm for read     */
+/* 4.6 WestfW/dkinzer: pass reset cause to app in R2      */
+/* Mar 2012                                               */
+/* 4.5 WestfW: add infrastructure for non-zero UARTS.     */
+/* 4.5 WestfW: fix SIGNATURE_2 for m644 (bad in avr-libc) */
+/* Jan 2012:                                              */
+/* 4.5 WestfW: fix NRWW value for m1284.                  */
+/* 4.4 WestfW: use attribute OS_main instead of naked for */
+/*             main().  This allows optimizations that we */
+/*             count on, which are prohibited in naked    */
+/*             functions due to PR42240.  (keeps us less  */
+/*             than 512 bytes when compiler is gcc4.5     */
+/*             (code from 4.3.2 remains the same.)        */
+/* 4.4 WestfW and Maniacbug:  Add m1284 support.  This    */
+/*             does not change the 328 binary, so the     */
+/*             version number didn't change either. (?)   */
+/* June 2011:                                             */
+/* 4.4 WestfW: remove automatic soft_uart detect (didn't  */
+/*             know what it was doing or why.)  Added a   */
+/*             check of the calculated BRG value instead. */
+/*             Version stays 4.4; existing binaries are   */
+/*             not changed.                               */
 /* 4.4 WestfW: add initialization of address to keep      */
 /*             the compiler happy.  Change SC'ed targets. */
 /*             Return the SW version via READ PARAM       */
@@ -144,7 +179,7 @@
 /**********************************************************/
 
 #define OPTIBOOT_MAJVER 4
-#define OPTIBOOT_MINVER 4
+#define OPTIBOOT_MINVER 6
 
 #define MAKESTR(a) #a
 #define MAKEVER(a, b) MAKESTR(a*256+b)
@@ -188,11 +223,30 @@ asm("  .section .version\n"
 #endif
 #endif
 
+#ifndef UART
+#define UART 0
+#endif
+
+#if 0
 /* Switch in soft UART for hard baud rates */
+/*
+ * I don't understand what this was supposed to accomplish, where the
+ * constant "280" came from, or why automatically (and perhaps unexpectedly)
+ * switching to a soft uart is a good thing, so I'm undoing this in favor
+ * of a range check using the same calc used to config the BRG...
+ */
 #if (F_CPU/BAUD_RATE) > 280 // > 57600 for 16MHz
 #ifndef SOFT_UART
 #define SOFT_UART
 #endif
+#endif
+#else // 0
+#if (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 > 250
+#error Unachievable baud rate (too slow) BAUD_RATE 
+#endif // baud rate slow check
+#if (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 < 3
+#error Unachievable baud rate (too fast) BAUD_RATE 
+#endif // baud rate fastn check
 #endif
 
 /* Watchdog settings */
@@ -214,7 +268,7 @@ asm("  .section .version\n"
 /* The main function is in init9, which removes the interrupt vector table */
 /* we don't need. It is also 'naked', which means the compiler does not    */
 /* generate any entry or exit code itself. */
-int main(void) __attribute__ ((naked)) __attribute__ ((section (".init9")));
+int main(void) __attribute__ ((OS_main)) __attribute__ ((section (".init9")));
 void putch(char);
 uint8_t getch(void);
 static inline void getNch(uint8_t); /* "static inline" is a compiler hint to reduce code size */
@@ -226,8 +280,23 @@ void watchdogConfig(uint8_t x);
 #ifdef SOFT_UART
 void uartDelay() __attribute__ ((naked));
 #endif
-void appStart() __attribute__ ((naked));
+void appStart(uint8_t rstFlags) __attribute__ ((naked));
 
+/*
+ * NRWW memory
+ * Addresses below NRWW (Non-Read-While-Write) can be programmed while
+ * continuing to run code from flash, slightly speeding up programming
+ * time.  Beware that Atmel data sheets specify this as a WORD address,
+ * while optiboot will be comparing against a 16-bit byte address.  This
+ * means that on a part with 128kB of memory, the upper part of the lower
+ * 64k will get NRWW processing as well, even though it doesn't need it.
+ * That's OK.  In fact, you can disable the overlapping processing for
+ * a part entirely by setting NRWWSTART to zero.  This reduces code
+ * space a bit, at the expense of being slightly slower, overall.
+ *
+ * RAMSTART should be self-explanatory.  It's bigger on parts with a
+ * lot of peripheral registers.
+ */
 #if defined(__AVR_ATmega168__)
 #define RAMSTART (0x100)
 #define NRWWSTART (0x3800)
@@ -235,6 +304,12 @@ void appStart() __attribute__ ((naked));
 #define RAMSTART (0x100)
 #define NRWWSTART (0x7000)
 #elif defined (__AVR_ATmega644P__)
+#define RAMSTART (0x100)
+#define NRWWSTART (0xE000)
+// correct for a bug in avr-libc
+#undef SIGNATURE_2
+#define SIGNATURE_2 0x0A
+#elif defined (__AVR_ATmega1284P__)
 #define RAMSTART (0x100)
 #define NRWWSTART (0xE000)
 #elif defined(__AVR_ATtiny84__)
@@ -255,6 +330,37 @@ void appStart() __attribute__ ((naked));
 #ifdef VIRTUAL_BOOT_PARTITION
 #define rstVect (*(uint16_t*)(RAMSTART+SPM_PAGESIZE*2+4))
 #define wdtVect (*(uint16_t*)(RAMSTART+SPM_PAGESIZE*2+6))
+#endif
+
+/*
+ * Handle devices with up to 4 uarts (eg m1280.)  Rather inelegantly.
+ * Note that mega8 still needs special handling, because ubrr is handled
+ * differently.
+ */
+#if UART == 0
+# define UART_SRA UCSR0A
+# define UART_SRB UCSR0B
+# define UART_SRC UCSR0C
+# define UART_SRL UBRR0L
+# define UART_UDR UDR0
+#elif UART == 1
+# define UART_SRA UCSR1A
+# define UART_SRB UCSR1B
+# define UART_SRC UCSR1C
+# define UART_SRL UBRR1L
+# define UART_UDR UDR1
+#elif UART == 2
+# define UART_SRA UCSR2A
+# define UART_SRB UCSR2B
+# define UART_SRC UCSR2C
+# define UART_SRL UBRR2L
+# define UART_UDR UDR2
+#elif UART == 3
+# define UART_SRA UCSR3A
+# define UART_SRB UCSR3B
+# define UART_SRC UCSR3C
+# define UART_SRL UBRR3L
+# define UART_UDR UDR3
 #endif
 
 /* main program starts here */
@@ -287,7 +393,7 @@ int main(void) {
   // Adaboot no-wait mod
   ch = MCUSR;
   MCUSR = 0;
-  if (!(ch & _BV(EXTRF))) appStart();
+  if (!(ch & _BV(EXTRF))) appStart(ch);
 
 #if LED_START_FLASHES > 0
   // Set up Timer 1 for timeout counter
@@ -300,10 +406,10 @@ int main(void) {
   UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);  // config USART; 8N1
   UBRRL = (uint8_t)( (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 );
 #else
-  UCSR0A = _BV(U2X0); //Double speed mode USART0
-  UCSR0B = _BV(RXEN0) | _BV(TXEN0);
-  UCSR0C = _BV(UCSZ00) | _BV(UCSZ01);
-  UBRR0L = (uint8_t)( (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 );
+  UART_SRA = _BV(U2X0); //Double speed mode USART0
+  UART_SRB = _BV(RXEN0) | _BV(TXEN0);
+  UART_SRC = _BV(UCSZ00) | _BV(UCSZ01);
+  UART_SRL = (uint8_t)( (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 );
 #endif
 #endif
 
@@ -450,8 +556,8 @@ int main(void) {
       getch();
 
       verifySpace();
-#ifdef VIRTUAL_BOOT_PARTITION
       do {
+#ifdef VIRTUAL_BOOT_PARTITION
         // Undo vector patch in bottom page so verify passes
         if (address == 0)       ch=rstVect & 0xff;
         else if (address == 1)  ch=rstVect >> 8;
@@ -459,24 +565,19 @@ int main(void) {
         else if (address == 9) ch=wdtVect >> 8;
         else ch = pgm_read_byte_near(address);
         address++;
+#elif defined(RAMPZ)
+        // Since RAMPZ should already be set, we need to use EPLM directly.
+        // Also, we can use the autoincrement version of lpm to update "address"
+        //      do putch(pgm_read_byte_near(address++));
+        //      while (--length);
+        // read a Flash and increment the address (may increment RAMPZ)
+        __asm__ ("elpm %0,Z+\n" : "=r" (ch), "=z" (address): "1" (address));
+#else
+        // read a Flash byte and increment the address
+        __asm__ ("lpm %0,Z+\n" : "=r" (ch), "=z" (address): "1" (address));
+#endif
         putch(ch);
       } while (--length);
-#else
-#ifdef __AVR_ATmega1280__
-//      do putch(pgm_read_byte_near(address++));
-//      while (--length);
-      do {
-        uint8_t result;
-        __asm__ ("elpm %0,Z\n":"=r"(result):"z"(address));
-        putch(result);
-        address++;
-      }
-      while (--length);
-#else
-      do putch(pgm_read_byte_near(address++));
-      while (--length);
-#endif
-#endif
     }
 
     /* Get device signature bytes  */
@@ -487,7 +588,7 @@ int main(void) {
       putch(SIGNATURE_1);
       putch(SIGNATURE_2);
     }
-    else if (ch == 'Q') {
+    else if (ch == STK_LEAVE_PROGMODE) { /* 'Q' */
       // Adaboot no-wait mod
       watchdogConfig(WATCHDOG_16MS);
       verifySpace();
@@ -502,8 +603,8 @@ int main(void) {
 
 void putch(char ch) {
 #ifndef SOFT_UART
-  while (!(UCSR0A & _BV(UDRE0)));
-  UDR0 = ch;
+  while (!(UART_SRA & _BV(UDRE0)));
+  UART_UDR = ch;
 #else
   __asm__ __volatile__ (
     "   com %[ch]\n" // ones complement, carry set
@@ -566,9 +667,9 @@ uint8_t getch(void) {
       "r25"
 );
 #else
-  while(!(UCSR0A & _BV(RXC0)))
+  while(!(UART_SRA & _BV(RXC0)))
     ;
-  if (!(UCSR0A & _BV(FE0))) {
+  if (!(UART_SRA & _BV(FE0))) {
       /*
        * A Framing Error indicates (probably) that something is talking
        * to us at the wrong bit rate.  Assume that this is because it
@@ -580,7 +681,7 @@ uint8_t getch(void) {
     watchdogReset();
   }
   
-  ch = UDR0;
+  ch = UART_UDR;
 #endif
 
 #ifdef LED_DATA_FLASH
@@ -595,7 +696,7 @@ uint8_t getch(void) {
 }
 
 #ifdef SOFT_UART
-// AVR350 equation: #define UART_B_VALUE (((F_CPU/BAUD_RATE)-23)/6)
+// AVR305 equation: #define UART_B_VALUE (((F_CPU/BAUD_RATE)-23)/6)
 // Adding 3 to numerator simulates nearest rounding for more accurate baud rates
 #define UART_B_VALUE (((F_CPU/BAUD_RATE)-20)/6)
 #if UART_B_VALUE > 255
@@ -655,7 +756,12 @@ void watchdogConfig(uint8_t x) {
   WDTCSR = x;
 }
 
-void appStart() {
+void appStart(uint8_t rstFlags) {
+  // save the reset flags in the designated register
+  //  This can be saved in a main program by putting code in .init0 (which
+  //  executes before normal c init code) to save R2 to a global variable.
+  __asm__ __volatile__ ("mov r2, %0\n" :: "r" (rstFlags));
+
   watchdogConfig(WATCHDOG_OFF);
   __asm__ __volatile__ (
 #ifdef VIRTUAL_BOOT_PARTITION

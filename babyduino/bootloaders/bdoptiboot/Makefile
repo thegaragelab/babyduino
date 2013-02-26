@@ -30,10 +30,20 @@ PROGRAM    = optiboot
 # OS ?= windows
 
 
-# enter the parameters for the avrdude isp tool
+# enter the parameters for the avrdude isp tool  -b19200
+#
+# These are the parameters for a usb-based STK500v2 programmer.
+# Exact type unknown.  (historical Makefile values.)
 ISPTOOL	   = stk500v2
-ISPPORT	   = usb
+ISPPORT	   =  usb
 ISPSPEED   = -b 115200
+#
+#
+# These are parameters for using an Arduino with the ArduinoISP sketch
+#  as the programmer.  On a mac, for a particular Uno as programmer.
+#ISPTOOL	= stk500v1 -C /Applications/arduino/arduino-0022/hardware/tools/avr/etc/avrdude.conf
+#ISPPORT	= /dev/tty.usbmodemfd3141 
+#ISPSPEED	= -b19200
 
 MCU_TARGET = atmega168
 LDSECTIONS  = -Wl,--section-start=.text=0x3e00 -Wl,--section-start=.version=0x3ffe
@@ -95,12 +105,12 @@ endif
 # unused, avrdude would get confused.
 
 ISPFUSES    = $(GCCROOT)avrdude $(AVRDUDE_CONF) -c $(ISPTOOL) \
-	      -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
-	      -e -u -U lock:w:0x3f:m -U efuse:w:0x$(EFUSE):m \
-	      -U hfuse:w:0x$(HFUSE):m -U lfuse:w:0x$(LFUSE):m
+              -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
+              -e -u -U lock:w:0x3f:m -U efuse:w:0x$(EFUSE):m \
+              -U hfuse:w:0x$(HFUSE):m -U lfuse:w:0x$(LFUSE):m
 ISPFLASH    = $(GCCROOT)avrdude $(AVRDUDE_CONF) -c $(ISPTOOL) \
-	      -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
-	      -U flash:w:$(PROGRAM)_$(TARGET).hex -U lock:w:0x2f:m
+              -p $(MCU_TARGET) -P $(ISPPORT) $(ISPSPEED) \
+              -U flash:w:$(PROGRAM)_$(TARGET).hex -U lock:w:0x2f:m
 
 STK500 = "C:\Program Files\Atmel\AVR Tools\STK500\Stk500.exe"
 STK500-1 = $(STK500) -e -d$(MCU_TARGET) -pf -vf -if$(PROGRAM)_$(TARGET).hex \
@@ -110,7 +120,7 @@ STK500-2 = $(STK500) -d$(MCU_TARGET) -ms -q -lCF -LCF -cUSB -I200kHz -s -wt
 OBJ        = $(PROGRAM).o
 OPTIMIZE = -Os -fno-inline-small-functions -fno-split-wide-types -mshort-calls
 
-DEFS       =
+DEFS       = 
 LIBS       =
 
 CC         = $(GCCROOT)avr-gcc
@@ -186,7 +196,7 @@ pro16_isp: isp
 atmega168: TARGET = atmega168
 atmega168: MCU_TARGET = atmega168
 atmega168: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-atmega168: AVR_FREQ = 16000000L
+atmega168: AVR_FREQ = 16000000L 
 atmega168: $(PROGRAM)_atmega168.hex
 atmega168: $(PROGRAM)_atmega168.lst
 
@@ -203,7 +213,7 @@ atmega168_isp: isp
 diecimila: TARGET = diecimila
 diecimila: MCU_TARGET = atmega168
 diecimila: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-diecimila: AVR_FREQ = 16000000L
+diecimila: AVR_FREQ = 16000000L 
 diecimila: $(PROGRAM)_diecimila.hex
 diecimila: $(PROGRAM)_diecimila.lst
 
@@ -220,7 +230,7 @@ diecimila_isp: isp
 atmega328: TARGET = atmega328
 atmega328: MCU_TARGET = atmega328p
 atmega328: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-atmega328: AVR_FREQ = 16000000L
+atmega328: AVR_FREQ ?= 16000000L
 atmega328: LDSECTIONS  = -Wl,--section-start=.text=0x7e00 -Wl,--section-start=.version=0x7ffe
 atmega328: $(PROGRAM)_atmega328.hex
 atmega328: $(PROGRAM)_atmega328.lst
@@ -233,8 +243,27 @@ atmega328_isp: HFUSE = DE
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 atmega328_isp: LFUSE = FF
 # 2.7V brownout
-atmega328_isp: EFUSE = 05
+atmega328_isp: EFUSE = FD
 atmega328_isp: isp
+
+atmega1284: TARGET = atmega1284p
+atmega1284: MCU_TARGET = atmega1284p
+atmega1284: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200' '-DBIGBOOT'
+atmega1284: AVR_FREQ = 16000000L
+atmega1284: LDSECTIONS  = -Wl,--section-start=.text=0x1fc00 -Wl,--section-start=.version=0x1fffe
+atmega1284: $(PROGRAM)_atmega1284p.hex
+atmega1284: $(PROGRAM)_atmega1284p.lst
+
+atmega1284_isp: atmega1284
+atmega1284_isp: TARGET = atmega1284p
+atmega1284_isp: MCU_TARGET = atmega1284p
+# 1024 byte boot
+atmega1284_isp: HFUSE = DE
+# Low power xtal (16MHz) 16KCK/14CK+65ms
+atmega1284_isp: LFUSE = FF
+# 2.7V brownout
+atmega1284_isp: EFUSE = FD
+atmega1284_isp: isp
 
 # Sanguino has a minimum boot size of 1024 bytes, so enable extra functions
 #
@@ -242,7 +271,7 @@ sanguino: TARGET = atmega644p
 sanguino: MCU_TARGET = atmega644p
 sanguino: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200' '-DBIGBOOT'
 sanguino: AVR_FREQ = 16000000L
-sanguino: LDSECTIONS  = -Wl,--section-start=.text=0xfc00
+sanguino: LDSECTIONS  = -Wl,--section-start=.text=0xfc00 -Wl,--section-start=.version=0xfffe
 sanguino: $(PROGRAM)_atmega644p.hex
 sanguino: $(PROGRAM)_atmega644p.lst
 
@@ -254,35 +283,35 @@ sanguino_isp: HFUSE = DE
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 sanguino_isp: LFUSE = FF
 # 2.7V brownout
-sanguino_isp: EFUSE = 05
+sanguino_isp: EFUSE = FD
 sanguino_isp: isp
 
 # Mega has a minimum boot size of 1024 bytes, so enable extra functions
 #mega: TARGET = atmega1280
-mega: MCU_TARGET = atmega1280
-mega: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200' '-DBIGBOOT'
-mega: AVR_FREQ = 16000000L
-mega: LDSECTIONS  = -Wl,--section-start=.text=0x1fc00
-mega: $(PROGRAM)_atmega1280.hex
-mega: $(PROGRAM)_atmega1280.lst
+mega1280: MCU_TARGET = atmega1280
+mega1280: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200' '-DBIGBOOT'
+mega1280: AVR_FREQ = 16000000L
+mega1280: LDSECTIONS  = -Wl,--section-start=.text=0x1fc00  -Wl,--section-start=.version=0x1fffe
+mega1280: $(PROGRAM)_atmega1280.hex
+mega1280: $(PROGRAM)_atmega1280.lst
 
-mega_isp: mega
-mega_isp: TARGET = atmega1280
-mega_isp: MCU_TARGET = atmega1280
+mega1280_isp: mega
+mega1280_isp: TARGET = atmega1280
+mega1280_isp: MCU_TARGET = atmega1280
 # 1024 byte boot
-mega_isp: HFUSE = DE
+mega1280_isp: HFUSE = DE
 # Low power xtal (16MHz) 16KCK/14CK+65ms
-mega_isp: LFUSE = FF
+mega1280_isp: LFUSE = FF
 # 2.7V brownout
-mega_isp: EFUSE = 05
-mega_isp: isp
+mega1280_isp: EFUSE = FD
+mega1280_isp: isp
 
 # ATmega8
 #
 atmega8: TARGET = atmega8
 atmega8: MCU_TARGET = atmega8
 atmega8: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-atmega8: AVR_FREQ = 16000000L
+atmega8: AVR_FREQ = 16000000L 
 atmega8: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
 atmega8: $(PROGRAM)_atmega8.hex
 atmega8: $(PROGRAM)_atmega8.lst
@@ -301,7 +330,7 @@ atmega8_isp: isp
 atmega88: TARGET = atmega88
 atmega88: MCU_TARGET = atmega88
 atmega88: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=115200'
-atmega88: AVR_FREQ = 16000000L
+atmega88: AVR_FREQ = 16000000L 
 atmega88: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
 atmega88: $(PROGRAM)_atmega88.hex
 atmega88: $(PROGRAM)_atmega88.lst
@@ -390,7 +419,7 @@ atmega328_pro8_isp: HFUSE = DE
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 atmega328_pro8_isp: LFUSE = FF
 # 2.7V brownout
-atmega328_pro8_isp: EFUSE = 05
+atmega328_pro8_isp: EFUSE = DE
 atmega328_pro8_isp: isp
 
 # 1MHz clocked platforms
@@ -417,48 +446,6 @@ luminet_isp: LFUSE = 62
 # Self-programming enable
 luminet_isp: EFUSE = FE
 luminet_isp: isp
-
-# Babyduino platforms
-#
-# These are set to use 57600 upload speed
-#
-
-# Babyduino - ATmega8/Internal clock @8MHz
-#
-babyduino8_nc: TARGET = babyduino8_nc
-babyduino8_nc: MCU_TARGET = atmega8
-babyduino8_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=28800' '-DTIMEOUT_MS=4000'
-babyduino8_nc: AVR_FREQ = 8000000L
-babyduino8_nc: LDSECTIONS  = -Wl,--section-start=.text=0x1e00 -Wl,--section-start=.version=0x1ffe
-babyduino8_nc: $(PROGRAM)_babyduino8_nc.hex
-babyduino8_nc: $(PROGRAM)_babyduino8_nc.lst
-
-babyduino8_nc_isp: babyduino8_nc
-babyduino8_nc_isp: TARGET = babyduino8_nc
-babyduino8_nc_isp: MCU_TARGET = atmega8
-# SPIEN, CKOPT, Bootsize=512B
-babyduino8_nc_isp: HFUSE = CA
-# 4.0V brownout, Internal Clock (8MHz) 6CK+64ms
-babyduino8_nc_isp: LFUSE = 24
-babyduino8_nc_isp: isp
-
-babyduino168_nc: TARGET = babyduino168_nc
-babyduino168_nc: MCU_TARGET = atmega168
-babyduino168_nc: CFLAGS += '-DLED_START_FLASHES=3' '-DBAUD_RATE=28800' '-DTIMEOUT_MS=4000'
-babyduino168_nc: AVR_FREQ = 8000000L
-babyduino168_nc: LDSECTIONS  = -Wl,--section-start=.text=0x3e00 -Wl,--section-start=.version=0x3ffe
-babyduino168_nc: $(PROGRAM)_babyduino168_nc.hex
-babyduino168_nc: $(PROGRAM)_babyduino168_nc.lst
-
-babyduino168_nc_isp: babyduino168_nc
-babyduino168_nc_isp: TARGET = babyduino168_nc
-# 4.3V brownout
-babyduino168_nc_isp: HFUSE = DC
-# Internal Oscillator (8MHz) 6KCK/14CK+65ms
-babyduino168_nc_isp: LFUSE = E2
-# 512 byte boot
-babyduino168_nc_isp: EFUSE = 04
-babyduino168_nc_isp: isp
 
 #
 # Generic build instructions
