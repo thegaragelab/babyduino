@@ -5,7 +5,7 @@ babyduino8_nc.name=Babyduino (ATMega8 Internal Clock)
 
 babyduino8_nc.upload.protocol=stk500
 babyduino8_nc.upload.maximum_size=7168
-babyduino8_nc.upload.speed=28800
+babyduino8_nc.upload.speed=115200
 
 babyduino8_nc.bootloader.low_fuses=0x24
 babyduino8_nc.bootloader.high_fuses=0xcc
@@ -24,10 +24,11 @@ babyduino168_nc.name=Babyduino (ATMega168 Internal Clock)
 
 babyduino168_nc.upload.protocol=stk500
 babyduino168_nc.upload.maximum_size=7168
-babyduino168_nc.upload.speed=28800
+babyduino168_nc.upload.speed=115200
 
-babyduino168_nc.bootloader.low_fuses=0xe4
-babyduino168_nc.bootloader.high_fuses=0xc4
+babyduino168_nc.bootloader.low_fuses=0xe2
+babyduino168_nc.bootloader.high_fuses=0xdc
+babyduino168_nc.bootloader.extended_fuses=0x04
 babyduino168_nc.bootloader.path=bdoptiboot
 babyduino168_nc.bootloader.file=optiboot_babyduino168_nc.hex
 babyduino168_nc.bootloader.unlock_bits=0x3F
