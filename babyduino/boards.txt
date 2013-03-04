@@ -42,15 +42,15 @@ babyduino88_nc.build.variant=arduino:standard
 # Babyduino (ATMega168, Internal Clock, 8MHz)
 babyduino168_nc.name=Babyduino (ATMega168 Internal Clock)
 
-babyduino168_nc.upload.protocol=stk500
+babyduino168_nc.upload.protocol=arduino
 babyduino168_nc.upload.maximum_size=15360
 babyduino168_nc.upload.speed=115200
 
 babyduino168_nc.bootloader.low_fuses=0xe2
 babyduino168_nc.bootloader.high_fuses=0xd5
 babyduino168_nc.bootloader.extended_fuses=0x02
-babyduino168_nc.bootloader.path=bdoptiboot
-babyduino168_nc.bootloader.file=optiboot_babyduino168_nc.hex
+babyduino168_nc.bootloader.path=babyboot
+babyduino168_nc.bootloader.file=babyduino168_nc.hex
 babyduino168_nc.bootloader.unlock_bits=0x3F
 babyduino168_nc.bootloader.lock_bits=0x0F
 
