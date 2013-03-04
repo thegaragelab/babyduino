@@ -3,14 +3,14 @@
 # Babyduino (ATMega8, Internal Clock, 8MHz)
 babyduino8_nc.name=Babyduino (ATMega8 Internal Clock)
 
-babyduino8_nc.upload.protocol=stk500
+babyduino8_nc.upload.protocol=arduino
 babyduino8_nc.upload.maximum_size=7168
-babyduino8_nc.upload.speed=115200
+babyduino8_nc.upload.speed=38400
 
-babyduino8_nc.bootloader.low_fuses=0x24
-babyduino8_nc.bootloader.high_fuses=0xcc
-babyduino8_nc.bootloader.path=bdoptiboot
-babyduino8_nc.bootloader.file=optiboot_babyduino8_nc.hex
+babyduino8_nc.bootloader.low_fuses=0xa4
+babyduino8_nc.bootloader.high_fuses=0xc2
+babyduino8_nc.bootloader.path=babyboot
+babyduino8_nc.bootloader.file=ATmegaBOOT.hex
 babyduino8_nc.bootloader.unlock_bits=0x3F
 babyduino8_nc.bootloader.lock_bits=0x0F
 

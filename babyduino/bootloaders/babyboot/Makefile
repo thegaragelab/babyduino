@@ -13,10 +13,10 @@ ISPSPEED   = -b 115200
 DIRAVR = ../../tools/avr/
 #DIRAVR = /usr/local/avrtod
 #DIRAVR = /usr/local/AVRMacPack
-DIRAVRBIN = $(DIRAVR)/bin
-DIRAVRUTILS = $(DIRAVR)/utils/bin
-DIRINC = $(DIRAVR)/include
-DIRLIB = $(DIRAVR)/avr/lib
+#DIRAVRBIN = $(DIRAVR)/bin
+#DIRAVRUTILS = $(DIRAVR)/utils/bin
+#DIRINC = $(DIRAVR)/include
+#DIRLIB = $(DIRAVR)/avr/lib
 
 
 MCU_TARGET = atmega8
@@ -26,28 +26,28 @@ FUSE_L     = 0xd4
 FUSE_H     = 0xca
 
 ISPFUSES    = avrdude -c $(ISPTOOL) -p $(MCU) -P $(ISPPORT) $(ISPSPEED) -e -u -U hfuse:w:$(FUSE_H):m -U lfuse:w:$(FUSE_L):m
-ISPFLASH    = avrdude -c $(ISPTOOL) -p $(MCU) -P $(ISPPORT) $(ISPSPEED) -U flash:w:$(PROGRAM).hex 
+ISPFLASH    = avrdude -c $(ISPTOOL) -p $(MCU) -P $(ISPPORT) $(ISPSPEED) -U flash:w:$(PROGRAM).hex
 
 
 OBJ        = $(PROGRAM).o
-#OPTIMIZE   = -Os
-OPTIMIZE   = -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -ffunction-sections -fdata-sections -fno-split-wide-types -Wl,--relax -fno-inline-small-functions -mcall-prologues
-#OPTIMIZE   = -Os -fdata-sections -fpack-struct -Wl,--relax  -fno-inline-small-functions -mcall-prologues
+OPTIMIZE   = -Os
+#OPTIMIZE   = -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -ffunction-sections -fdata-sections -fno-split-wide-types -Wl,--relax -fno-inline-small-functions -mcall-prologues
+#OPTIMIZE   = -Os -fdata-sections -fpack-struct -Wl,--relax  -mcall-prologues
 
 DEFS       = -DF_CPU=8000000 -DBAUD_RATE=38400
 LIBS       =
 
-CC         = $(DIRAVRBIN)/avr-gcc
+CC         = avr-gcc
 
 
 # Override is only needed by avr-lib build system.
 
-override CFLAGS        = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) -D$(MCU) $(DEFS) -I$(DIRINC)
+override CFLAGS        = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) -D$(MCU) $(DEFS)
 override LDFLAGS       = -Wl,-Map,$(PROGRAM).map,$(LDSECTION)
 
-OBJCOPY        = $(DIRAVRBIN)/avr-objcopy
-OBJDUMP        = $(DIRAVRBIN)/avr-objdump
-SIZE           = $(DIRAVRBIN)/avr-size
+OBJCOPY        = avr-objcopy
+OBJDUMP        = avr-objdump
+SIZE           = avr-size
 
 all: $(PROGRAM).elf lst text asm size
 
