@@ -47,6 +47,16 @@ babyduino88_nc: LDSECTION  = --section-start=.text=0x1c00
 babyduino88_nc: babyduino88_nc.elf
 babyduino88_nc: babyduino88_nc.hex
 
+# Babyduino - ATmega168/Internal clock @8MHz
+#
+babyduino168_nc: TARGET = babyduino168_nc
+babyduino168_nc: MCU = atmega168
+babyduino168_nc: MCU_TARGET = atmega168
+babyduino168_nc: CFLAGS += -DF_CPU=8000000 -DBAUD_RATE=38400
+babyduino168_nc: LDSECTION  = --section-start=.text=0x3c00
+babyduino168_nc: babyduino168_nc.elf
+babyduino168_nc: babyduino168_nc.hex
+
 # Common rules
 #
 %.hex: %.elf
