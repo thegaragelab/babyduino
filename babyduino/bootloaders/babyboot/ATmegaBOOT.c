@@ -89,8 +89,16 @@
 
 
 #define SIG1	0x1E	// Yep, Atmel is the only manufacturer of AVR micros.  Single source :(
-#define SIG2	0x93
-#define SIG3	0x07
+#ifdef __AVR_ATmega8__
+#  define SIG2	0x93
+#  define SIG3	0x07
+#elif __AVR_ATmega88__
+#  define SIG2 0x93
+#  define SIG3 0x0A
+#else
+#  error "Unknown processor type!"
+#endif
+
 #define PAGE_SIZE	0x20U	//32 words
 
 
