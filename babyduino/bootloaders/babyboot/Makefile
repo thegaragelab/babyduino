@@ -19,7 +19,7 @@ OBJCOPY        = avr-objcopy
 OBJDUMP        = avr-objdump
 SIZE           = avr-size
 
-all: babyduino8_nc babyduino88_nc babyduino168_nc
+all: babyduino8_nc
 
 clean:
 	rm -rf *.s
@@ -71,6 +71,7 @@ babyduino168_nc: babyduino168_nc.hex
 
 %.elf:
 	cp $(PROGRAM).o $(TARGET).o
+	rm $(PROGRAM).o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(TARGET).o $(LIBS)
 
 $(PROGRAM1).o: $(PROGRAM1).c

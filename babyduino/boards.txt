@@ -44,7 +44,7 @@ babyduino168_nc.name=Babyduino (ATMega168 Internal Clock)
 
 babyduino168_nc.upload.protocol=arduino
 babyduino168_nc.upload.maximum_size=15360
-babyduino168_nc.upload.speed=115200
+babyduino168_nc.upload.speed=38400
 
 babyduino168_nc.bootloader.low_fuses=0xe2
 babyduino168_nc.bootloader.high_fuses=0xd5
