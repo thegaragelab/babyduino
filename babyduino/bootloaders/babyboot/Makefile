@@ -2,15 +2,14 @@
 # E.Lins, 2004-10-14
 
 # program name should not be changed...
-PROGRAM    = ATmegaBOOT
+PROGRAM1    = ATmegaBOOT
+PROGRAM2    = optiboot
 
-OBJ        = $(PROGRAM).o
-OPTIMIZE   = -Os
+OPTIMIZE    = -Os
 #OPTIMIZE   = -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -ffunction-sections -fdata-sections -fno-split-wide-types -Wl,--relax -fno-inline-small-functions -mcall-prologues
 #OPTIMIZE   = -Os -fdata-sections -fpack-struct -Wl,--relax  -mcall-prologues
 
 CC         = avr-gcc
-
 
 # Override is only needed by avr-lib build system.
 override CFLAGS        = -g -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) -D$(MCU)
@@ -20,7 +19,7 @@ OBJCOPY        = avr-objcopy
 OBJDUMP        = avr-objdump
 SIZE           = avr-size
 
-all: babyduino8_nc babyduino88_nc
+all: babyduino8_nc babyduino88_nc babyduino168_nc
 
 clean:
 	rm -rf *.s
@@ -34,6 +33,8 @@ babyduino8_nc: MCU = atmega8
 babyduino8_nc: MCU_TARGET = atmega8
 babyduino8_nc: CFLAGS += -DF_CPU=8000000 -DBAUD_RATE=38400
 babyduino8_nc: LDSECTION  = --section-start=.text=0x1c00
+babyduino8_nc: PROGRAM = $(PROGRAM1)
+babyduino8_nc: $(PROGRAM1).o
 babyduino8_nc: babyduino8_nc.elf
 babyduino8_nc: babyduino8_nc.hex
 
@@ -44,6 +45,8 @@ babyduino88_nc: MCU = atmega88
 babyduino88_nc: MCU_TARGET = atmega88
 babyduino88_nc: CFLAGS += -DF_CPU=8000000 -DBAUD_RATE=38400
 babyduino88_nc: LDSECTION  = --section-start=.text=0x1c00
+babyduino88_nc: PROGRAM = $(PROGRAM2)
+babyduino88_nc: $(PROGRAM2).o
 babyduino88_nc: babyduino88_nc.elf
 babyduino88_nc: babyduino88_nc.hex
 
@@ -54,6 +57,8 @@ babyduino168_nc: MCU = atmega168
 babyduino168_nc: MCU_TARGET = atmega168
 babyduino168_nc: CFLAGS += -DF_CPU=8000000 -DBAUD_RATE=38400
 babyduino168_nc: LDSECTION  = --section-start=.text=0x3c00
+babyduino168_nc: PROGRAM = $(PROGRAM2)
+babyduino168_nc: $(PROGRAM2).o
 babyduino168_nc: babyduino168_nc.elf
 babyduino168_nc: babyduino168_nc.hex
 
@@ -62,13 +67,12 @@ babyduino168_nc: babyduino168_nc.hex
 %.hex: %.elf
 	$(OBJCOPY) -j .text -j .data -O ihex $< $@
 	$(SIZE) $@
+	md5sum $@
 
-%.srec: %.elf
-	$(OBJCOPY) -j .text -j .data -O srec $< $@
+%.elf:
+	cp $(PROGRAM).o $(TARGET).o
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(TARGET).o $(LIBS)
 
-%.bin: %.elf
-	$(OBJCOPY) -j .text -j .data -O binary $< $@
-
-%.elf: $(OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(PROGRAM1).o: $(PROGRAM1).c
+$(PROGRAM2).o: $(PROGRAM2).c
 

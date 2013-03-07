@@ -130,8 +130,25 @@
 /**********************************************************/
 
 /**********************************************************/
-/* Edit History:					  */
-/*							  */
+/* Edit History:                                          */
+/*                                                        */
+/* Jan 2012:                                              */
+/* 4.5 WestfW: fix NRWW value for m1284.                  */
+/* 4.4 WestfW: use attribute OS_main instead of naked for */
+/*             main().  This allows optimizations that we */
+/*             count on, which are prohibited in naked    */
+/*             functions due to PR42240.  (keeps us less  */
+/*             than 512 bytes when compiler is gcc4.5     */
+/*             (code from 4.3.2 remains the same.)        */
+/* 4.4 WestfW and Maniacbug:  Add m1284 support.  This    */
+/*             does not change the 328 binary, so the     */
+/*             version number didn't change either. (?)   */
+/* June 2011:                                             */
+/* 4.4 WestfW: remove automatic soft_uart detect (didn't  */
+/*             know what it was doing or why.)  Added a   */
+/*             check of the calculated BRG value instead. */
+/*             Version stays 4.4; existing binaries are   */
+/*             not changed.                               */
 /* 4.4 WestfW: add initialization of address to keep      */
 /*             the compiler happy.  Change SC'ed targets. */
 /*             Return the SW version via READ PARAM       */
@@ -140,11 +157,11 @@
 /*  http://code.google.com/p/arduino/issues/detail?id=368n*/
 /* 4.2 WestfW: reduce code size, fix timeouts, change     */
 /*             verifySpace to use WDT instead of appstart */
-/* 4.1 WestfW: put version number in binary.		  */
+/* 4.1 WestfW: put version number in binary.              */
 /**********************************************************/
 
 #define OPTIBOOT_MAJVER 4
-#define OPTIBOOT_MINVER 4
+#define OPTIBOOT_MINVER 5
 
 #define MAKESTR(a) #a
 #define MAKEVER(a, b) MAKESTR(a*256+b)
@@ -168,7 +185,7 @@ asm("  .section .version\n"
 #include "stk500.h"
 
 #ifndef LED_START_FLASHES
-#define LED_START_FLASHES 0
+#define LED_START_FLASHES 3
 #endif
 
 #ifdef LUDICROUS_SPEED
@@ -188,11 +205,26 @@ asm("  .section .version\n"
 #endif
 #endif
 
+#if 0
 /* Switch in soft UART for hard baud rates */
+/*
+ * I don't understand what this was supposed to accomplish, where the
+ * constant "280" came from, or why automatically (and perhaps unexpectedly)
+ * switching to a soft uart is a good thing, so I'm undoing this in favor
+ * of a range check using the same calc used to config the BRG...
+ */
 #if (F_CPU/BAUD_RATE) > 280 // > 57600 for 16MHz
 #ifndef SOFT_UART
 #define SOFT_UART
 #endif
+#endif
+#else // 0
+#if (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 > 250
+#error Unachievable baud rate (too slow) BAUD_RATE
+#endif // baud rate slow check
+#if (F_CPU + BAUD_RATE * 4L) / (BAUD_RATE * 8L) - 1 < 3
+#error Unachievable baud rate (too fast) BAUD_RATE
+#endif // baud rate fastn check
 #endif
 
 /* Watchdog settings */
@@ -214,7 +246,7 @@ asm("  .section .version\n"
 /* The main function is in init9, which removes the interrupt vector table */
 /* we don't need. It is also 'naked', which means the compiler does not    */
 /* generate any entry or exit code itself. */
-int main(void) __attribute__ ((naked)) __attribute__ ((section (".init9")));
+int main(void) __attribute__ ((OS_main)) __attribute__ ((section (".init9")));
 void putch(char);
 uint8_t getch(void);
 static inline void getNch(uint8_t); /* "static inline" is a compiler hint to reduce code size */
@@ -228,6 +260,21 @@ void uartDelay() __attribute__ ((naked));
 #endif
 void appStart() __attribute__ ((naked));
 
+/*
+ * NRWW memory
+ * Addresses below NRWW (Non-Read-While-Write) can be programmed while
+ * continuing to run code from flash, slightly speeding up programming
+ * time.  Beware that Atmel data sheets specify this as a WORD address,
+ * while optiboot will be comparing against a 16-bit byte address.  This
+ * means that on a part with 128kB of memory, the upper part of the lower
+ * 64k will get NRWW processing as well, even though it doesn't need it.
+ * That's OK.  In fact, you can disable the overlapping processing for
+ * a part entirely by setting NRWWSTART to zero.  This reduces code
+ * space a bit, at the expense of being slightly slower, overall.
+ *
+ * RAMSTART should be self-explanatory.  It's bigger on parts with a
+ * lot of peripheral registers.
+ */
 #if defined(__AVR_ATmega168__)
 #define RAMSTART (0x100)
 #define NRWWSTART (0x3800)
@@ -235,6 +282,9 @@ void appStart() __attribute__ ((naked));
 #define RAMSTART (0x100)
 #define NRWWSTART (0x7000)
 #elif defined (__AVR_ATmega644P__)
+#define RAMSTART (0x100)
+#define NRWWSTART (0xE000)
+#elif defined (__AVR_ATmega1284P__)
 #define RAMSTART (0x100)
 #define NRWWSTART (0xE000)
 #elif defined(__AVR_ATtiny84__)
@@ -285,9 +335,10 @@ int main(void) {
 #endif
 
   // Adaboot no-wait mod
+  // Enter bootloader expect on WDT timeout
   ch = MCUSR;
   MCUSR = 0;
-  if (!(ch & _BV(EXTRF))) appStart();
+  if ((ch & _BV(WDRF))) appStart();
 
 #if LED_START_FLASHES > 0
   // Set up Timer 1 for timeout counter
@@ -332,18 +383,18 @@ int main(void) {
       unsigned char which = getch();
       verifySpace();
       if (which == 0x82) {
-	/*
-	 * Send optiboot version as "minor SW version"
-	 */
-	putch(OPTIBOOT_MINVER);
+        /*
+         * Send optiboot version as "minor SW version"
+         */
+        putch(OPTIBOOT_MINVER);
       } else if (which == 0x81) {
-	  putch(OPTIBOOT_MAJVER);
+          putch(OPTIBOOT_MAJVER);
       } else {
-	/*
-	 * GET PARAMETER returns a generic 0x03 reply for
+        /*
+         * GET PARAMETER returns a generic 0x03 reply for
          * other parameters - enough to keep Avrdude happy
-	 */
-	putch(0x03);
+         */
+        putch(0x03);
       }
     }
     else if(ch == STK_SET_DEVICE) {
@@ -378,7 +429,7 @@ int main(void) {
       uint8_t *bufPtr;
       uint16_t addrPtr;
 
-      getch();			/* getlen() */
+      getch();                  /* getlen() */
       length = getch();
       getch();
 
@@ -445,7 +496,7 @@ int main(void) {
     /* Read memory block mode, length is big endian.  */
     else if(ch == STK_READ_PAGE) {
       // READ PAGE - we only read flash
-      getch();			/* getlen() */
+      getch();                  /* getlen() */
       length = getch();
       getch();
 
@@ -462,7 +513,8 @@ int main(void) {
         putch(ch);
       } while (--length);
 #else
-#ifdef __AVR_ATmega1280__
+#ifdef RAMPZ
+// Since RAMPZ should already be set, we need to use EPLM directly.
 //      do putch(pgm_read_byte_near(address++));
 //      while (--length);
       do {
@@ -487,7 +539,7 @@ int main(void) {
       putch(SIGNATURE_1);
       putch(SIGNATURE_2);
     }
-    else if (ch == 'Q') {
+    else if (ch == STK_LEAVE_PROGMODE) { /* 'Q' */
       // Adaboot no-wait mod
       watchdogConfig(WATCHDOG_16MS);
       verifySpace();
@@ -579,7 +631,7 @@ uint8_t getch(void) {
        */
     watchdogReset();
   }
-  
+
   ch = UDR0;
 #endif
 
@@ -595,7 +647,7 @@ uint8_t getch(void) {
 }
 
 #ifdef SOFT_UART
-// AVR350 equation: #define UART_B_VALUE (((F_CPU/BAUD_RATE)-23)/6)
+// AVR305 equation: #define UART_B_VALUE (((F_CPU/BAUD_RATE)-23)/6)
 // Adding 3 to numerator simulates nearest rounding for more accurate baud rates
 #define UART_B_VALUE (((F_CPU/BAUD_RATE)-20)/6)
 #if UART_B_VALUE > 255
@@ -621,8 +673,8 @@ void getNch(uint8_t count) {
 void verifySpace() {
   if (getch() != CRC_EOP) {
     watchdogConfig(WATCHDOG_16MS);    // shorten WD timeout
-    while (1)			      // and busy-loop so that WD causes
-      ;				      //  a reset and app start.
+    while (1)                         // and busy-loop so that WD causes
+      ;                               //  a reset and app start.
   }
   putch(STK_INSYNC);
 }
@@ -670,3 +722,4 @@ void appStart() {
     "ijmp\n"
   );
 }
+
