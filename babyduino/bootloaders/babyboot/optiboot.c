@@ -359,7 +359,7 @@ int main(void) {
 #endif
 
   // Set up watchdog to trigger after 500ms
-  watchdogConfig(WATCHDOG_1S);
+  watchdogConfig(WATCHDOG_2S);
 
   /* Set LED pin as output */
   LED_DDR |= _BV(LED);
