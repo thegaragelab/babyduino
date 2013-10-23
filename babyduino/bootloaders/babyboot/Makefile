@@ -26,6 +26,50 @@ clean:
 	rm -rf *.o *.elf
 	rm -rf *.lst *.map
 
+#----------------------------------------------------------------------------
+# Babyduino (Mk 2)
+#----------------------------------------------------------------------------
+
+# Babyduino - ATmega8 @8MHz
+#
+babyduino2_8: TARGET = babyduino2_8
+babyduino2_8: MCU = atmega8
+babyduino2_8: MCU_TARGET = atmega8
+babyduino2_8: CFLAGS += -DF_CPU=8000000 -DBAUD_RATE=38400 -DBABYDUINO2
+babyduino2_8: LDSECTION  = --section-start=.text=0x1c00
+babyduino2_8: PROGRAM = $(PROGRAM1)
+babyduino2_8: $(PROGRAM1).o
+babyduino2_8: babyduino2_8.elf
+babyduino2_8: babyduino2_8.hex
+
+# Babyduino - ATmega88 @8MHz
+#
+babyduino2_88: TARGET = babyduino2_88
+babyduino2_88: MCU = atmega88
+babyduino2_88: MCU_TARGET = atmega88
+babyduino2_88: CFLAGS += -DF_CPU=8000000 -DBAUD_RATE=38400 -DBABYDUINO2
+babyduino2_88: LDSECTION  = --section-start=.text=0x1c00
+babyduino2_88: PROGRAM = $(PROGRAM2)
+babyduino2_88: $(PROGRAM2).o
+babyduino2_88: babyduino2_88.elf
+babyduino2_88: babyduino2_88.hex
+
+# Babyduino - ATmega168 @8MHz
+#
+babyduino2_168: TARGET = babyduino2_168
+babyduino2_168: MCU = atmega168
+babyduino2_168: MCU_TARGET = atmega168
+babyduino2_168: CFLAGS += -DF_CPU=8000000 -DBAUD_RATE=38400 -DBABYDUINO2
+babyduino2_168: LDSECTION  = --section-start=.text=0x3c00
+babyduino2_168: PROGRAM = $(PROGRAM2)
+babyduino2_168: $(PROGRAM2).o
+babyduino2_168: babyduino2_168.elf
+babyduino2_168: babyduino2_168.hex
+
+#----------------------------------------------------------------------------
+# Babyduino (Original)
+#----------------------------------------------------------------------------
+
 # Babyduino - ATmega8/Internal clock @8MHz
 #
 babyduino8_nc: TARGET = babyduino8_nc

@@ -81,12 +81,19 @@
 #define eeprom_rw(addr)   eeprom_read_word ((uint16_t *)(addr))
 #define eeprom_wb(addr, val)   eeprom_write_byte ((uint8_t *)(addr), (uint8_t)(val))
 
+#ifdef BABYDUINO2
 /* Onboard LED is connected to pin PB5 */
-#define LED_DDR  DDRB
-#define LED_PORT PORTB
-#define LED_PIN  PINB
-#define LED      PINB5
-
+#  define LED_DDR  DDRB
+#  define LED_PORT PORTB
+#  define LED_PIN  PINB
+#  define LED      PINB5
+#else
+/* Onboard LED is connected to pin PB5 */
+#  define LED_DDR  DDRB
+#  define LED_PORT PORTB
+#  define LED_PIN  PINB
+#  define LED      PINB5
+#endif
 
 #define SIG1	0x1E	// Yep, Atmel is the only manufacturer of AVR micros.  Single source :(
 #ifdef __AVR_ATmega8__
