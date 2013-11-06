@@ -81,19 +81,11 @@
 #define eeprom_rw(addr)   eeprom_read_word ((uint16_t *)(addr))
 #define eeprom_wb(addr, val)   eeprom_write_byte ((uint8_t *)(addr), (uint8_t)(val))
 
-#ifdef BABYDUINO2
 /* Onboard LED is connected to pin PB5 */
-#  define LED_DDR  DDRB
-#  define LED_PORT PORTB
-#  define LED_PIN  PINB
-#  define LED      PINB5
-#else
-/* Onboard LED is connected to pin PB5 */
-#  define LED_DDR  DDRB
-#  define LED_PORT PORTB
-#  define LED_PIN  PINB
-#  define LED      PINB5
-#endif
+#define LED_DDR  DDRB
+#define LED_PORT PORTB
+#define LED_PIN  PINB
+#define LED      PINB5
 
 #define SIG1	0x1E	// Yep, Atmel is the only manufacturer of AVR micros.  Single source :(
 #ifdef __AVR_ATmega8__
@@ -180,6 +172,7 @@ int main(void)
   //uint32_t time_count;
   //time_count=0;
 
+#ifndef BABYDUINO2
   /* set LED pin as output */
   sbi(LED_DDR,LED);
 	for (i = 0; i < 16; i++) {
@@ -197,6 +190,7 @@ int main(void)
     //for(l=0; l<40000000; ++l);
     //cbi(LED_PORT,LED);
   //}
+#endif /* BABYDUINO2 */
 
  /* see comment at previous call to putch() */
  //putch('\0'); // this line is needed for the synchronization of the programmer
