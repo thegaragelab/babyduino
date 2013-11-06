@@ -184,6 +184,11 @@ asm("  .section .version\n"
 #include "pin_defs.h"
 #include "stk500.h"
 
+// Disable status LED on the Babyduino Mk2
+#ifdef BABYDUINO2
+#define LED_START_FLASHES 0
+#endif
+
 #ifndef LED_START_FLASHES
 #define LED_START_FLASHES 3
 #endif
